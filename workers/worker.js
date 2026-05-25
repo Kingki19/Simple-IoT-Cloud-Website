@@ -1,6 +1,10 @@
 import html from '../website/index.html';
 import css from '../website/style.css';
-import readFileSync from 'fs';
+import fs from 'fs/promises';
+
+// fetch app.js with fs
+
+const appJs = await fs.readFile('./website/app.js', 'utf-8');
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -31,7 +35,7 @@ export default {
     }
 
     if (pathname === "/app.js") {
-      return new Response(readFileSync('../website/app.js'), {
+      return new Response(appJs, {
         status: 200,
         headers: { "Content-Type": "application/javascript; charset=utf-8" }
       });

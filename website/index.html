@@ -23,6 +23,15 @@
         <h2>Soil Value</h2>
         <p id="soilValue">--</p>
       </div>
+      <div class="card chart-card">
+        <h2>Last 60s sensor graph</h2>
+        <canvas id="historyChart"></canvas>
+        <div class="chart-legend">
+          <span><span class="legend-dot temp"></span>Temperature</span>
+          <span><span class="legend-dot humidity"></span>Humidity</span>
+          <span><span class="legend-dot soil"></span>Soil Value</span>
+        </div>
+      </div>
     </div>
     <div class="footer">
       <span>Last updated:</span>

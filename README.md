@@ -44,5 +44,5 @@ This project uses an ESP32 sensor sketch plus a static website hosted on Cloudfl
 
 - ESP32 reads DHT22 and soil sensor data.
 - ESP32 sends the latest measurements as JSON to the Cloudflare Worker.
-- The Worker stores the latest reading in KV.
-- The Cloudflare Pages website fetches `/latest` and displays the data.
+- The Worker stores the latest reading and keeps the last 60 seconds of history in KV.
+- The Cloudflare Pages website fetches `/latest`, displays the data, and renders a one-minute graph.

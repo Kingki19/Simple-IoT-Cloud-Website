@@ -23,6 +23,14 @@ const html = `<!DOCTYPE html>
         <h2>Soil Value</h2>
         <p id="soilValue">--</p>
       </div>
+      <div class="card chart-card">
+        <h2>Last 60s sensor graph</h2>
+        <canvas id="historyChart"></canvas>
+        <div class="chart-legend">
+          <span><span class="legend-dot temp"></span>Temperature</span>
+          <span><span class="legend-dot humidity"></span>Humidity</span>
+        </div>
+      </div>
     </div>
     <div class="footer">
       <span>Last updated:</span>
@@ -86,6 +94,44 @@ h1 {
   color: #f8fafc;
 }
 
+.chart-card {
+  grid-column: 1 / -1;
+  padding-bottom: 14px;
+}
+
+#historyChart {
+  width: 100%;
+  height: 260px;
+  display: block;
+  margin-top: 14px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.chart-legend {
+  margin-top: 14px;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  color: #cbd5e1;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.legend-dot.temp {
+  background: #38bdf8;
+}
+
+.legend-dot.humidity {
+  background: #facc15;
+}
+
 .footer {
   margin-top: 24px;
   color: #94a3b8;
@@ -101,6 +147,102 @@ const temperatureEl = document.getElementById("temperature");
 const humidityEl = document.getElementById("humidity");
 const soilValueEl = document.getElementById("soilValue");
 const updatedAtEl = document.getElementById("updatedAt");
+const historyChart = document.getElementById("historyChart");
+
+let currentHistory = [];
+
+function formatTime(timestamp) {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function drawHistoryChart(history) {
+  const ctx = historyChart.getContext("2d");
+  const width = historyChart.clientWidth;
+  const height = historyChart.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+
+  historyChart.width = width * dpr;
+  historyChart.height = height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  if (!history.length) {
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "16px Inter, system-ui, sans-serif";
+    ctx.fillText("Waiting for sensor history...", 16, 34);
+    return;
+  }
+
+  const temperatures = history.map((item) => item.temperature);
+  const humidities = history.map((item) => item.humidity);
+  const minValue = Math.min(...temperatures, ...humidities);
+  const maxValue = Math.max(...temperatures, ...humidities);
+  const range = maxValue - minValue || 1;
+
+  const padding = 30;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+  const stepX = history.length > 1 ? chartWidth / (history.length - 1) : 0;
+
+  function getX(index) {
+    return padding + stepX * index;
+  }
+
+  function getY(value) {
+    return padding + chartHeight - ((value - minValue) / range) * chartHeight;
+  }
+
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.18)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i += 1) {
+    const y = padding + (chartHeight / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
+  }
+
+  function drawLine(values, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    values.forEach((value, index) => {
+      const x = getX(index);
+      const y = getY(value);
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.stroke();
+
+    values.forEach((value, index) => {
+      const x = getX(index);
+      const y = getY(value);
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+  }
+
+  drawLine(temperatures, "#38bdf8");
+  drawLine(humidities, "#facc15");
+
+  ctx.fillStyle = "#cbd5e1";
+  ctx.font = "12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(formatTime(history[0].timestamp), padding, height - 10);
+  ctx.textAlign = "right";
+  ctx.fillText(formatTime(history[history.length - 1].timestamp), width - padding, height - 10);
+
+  ctx.textAlign = "left";
+  ctx.fillText(minValue.toFixed(1), padding, padding + 12);
+  ctx.textAlign = "right";
+  ctx.fillText(maxValue.toFixed(1), width - padding, padding + 12);
+}
 
 async function fetchLatestData() {
   statusEl.textContent = "Fetching latest sensor data...";
@@ -111,10 +253,14 @@ async function fetchLatestData() {
     }
 
     const data = await response.json();
-    temperatureEl.textContent = (data.temperature?.toFixed(1) ?? "--") + " °C";
-    humidityEl.textContent = (data.humidity?.toFixed(1) ?? "--") + " %";
+    temperatureEl.textContent = (data.temperature !== undefined ? data.temperature.toFixed(1) : "--") + " °C";
+    humidityEl.textContent = (data.humidity !== undefined ? data.humidity.toFixed(1) : "--") + " %";
     soilValueEl.textContent = data.soilValue ?? "--";
     updatedAtEl.textContent = data.timestamp ?? new Date().toLocaleString();
+
+    currentHistory = Array.isArray(data.history) ? data.history : [];
+    drawHistoryChart(currentHistory);
+
     statusEl.textContent = "Live data loaded.";
   } catch (error) {
     statusEl.textContent = "Unable to load data. Check your API endpoint.";
@@ -122,8 +268,12 @@ async function fetchLatestData() {
   }
 }
 
+window.addEventListener("resize", () => {
+  drawHistoryChart(currentHistory);
+});
+
 fetchLatestData();
-setInterval(fetchLatestData, 20000);`;
+setInterval(fetchLatestData, 5000);`;
 
 export default {
   async fetch(request, env) {
@@ -183,7 +333,27 @@ async function handleUpdate(request, env) {
     timestamp: new Date().toISOString()
   };
 
+  const MAX_HISTORY = 12;
+  let history = [];
+  const historyValue = await env.SENSOR_DATA.get("history");
+  if (historyValue) {
+    try {
+      const parsedHistory = JSON.parse(historyValue);
+      if (Array.isArray(parsedHistory)) {
+        history = parsedHistory;
+      }
+    } catch (err) {
+      history = [];
+    }
+  }
+
+  history.push(payload);
+  if (history.length > MAX_HISTORY) {
+    history = history.slice(-MAX_HISTORY);
+  }
+
   await env.SENSOR_DATA.put("latest", JSON.stringify(payload));
+  await env.SENSOR_DATA.put("history", JSON.stringify(history));
 
   return new Response(JSON.stringify({ status: "ok" }), {
     status: 200,
@@ -192,15 +362,34 @@ async function handleUpdate(request, env) {
 }
 
 async function handleLatest(env) {
-  const value = await env.SENSOR_DATA.get("latest");
-  if (!value) {
+  const latestValue = await env.SENSOR_DATA.get("latest");
+  if (!latestValue) {
     return new Response(JSON.stringify({ error: "No data available" }), {
       status: 404,
       headers: { "Content-Type": "application/json" }
     });
   }
 
-  return new Response(value, {
+  let history = [];
+  const historyValue = await env.SENSOR_DATA.get("history");
+  if (historyValue) {
+    try {
+      const parsedHistory = JSON.parse(historyValue);
+      if (Array.isArray(parsedHistory)) {
+        history = parsedHistory;
+      }
+    } catch (err) {
+      history = [];
+    }
+  }
+
+  const latestData = JSON.parse(latestValue);
+  const responsePayload = {
+    ...latestData,
+    history
+  };
+
+  return new Response(JSON.stringify(responsePayload), {
     status: 200,
     headers: { "Content-Type": "application/json" }
   });

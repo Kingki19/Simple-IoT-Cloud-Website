@@ -56,7 +56,7 @@ h1 {
   padding-bottom: 14px;
 }
 
-#historyChart {
+.history-chart {
   width: 100%;
   height: 260px;
   display: block;

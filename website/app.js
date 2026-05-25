@@ -4,7 +4,9 @@ const temperatureEl = document.getElementById("temperature");
 const humidityEl = document.getElementById("humidity");
 const soilValueEl = document.getElementById("soilValue");
 const updatedAtEl = document.getElementById("updatedAt");
-const historyChart = document.getElementById("historyChart");
+const tempChart = document.getElementById("historyChartTemp");
+const humidityChart = document.getElementById("historyChartHum");
+const soilChart = document.getElementById("historyChartSoil");
 
 let currentHistory = [];
 
@@ -13,37 +15,33 @@ function formatTime(timestamp) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-function drawHistoryChart(history) {
-  const ctx = historyChart.getContext("2d");
-  const width = historyChart.clientWidth;
-  const height = historyChart.clientHeight;
+function normalizeHistory(history) {
+  return history.length
+    ? history
+    : [{ timestamp: Date.now(), temperature: 0, humidity: 0, soilValue: 0 }];
+}
+
+function drawLineChart(canvas, history, valueKey, color) {
+  const ctx = canvas.getContext("2d");
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
   const dpr = window.devicePixelRatio || 1;
 
-  historyChart.width = width * dpr;
-  historyChart.height = height * dpr;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
 
-  if (!history.length) {
-    history = [{
-      timestamp: Date.now(),
-      temperature: 0,
-      humidity: 0,
-      soilValue: 0,
-    }];
-  }
-
-  const temperatures = history.map((item) => item.temperature ?? 0);
-  const humidities = history.map((item) => item.humidity ?? 0);
-  const soilValues = history.map((item) => item.soilValue ?? 0);
-  const minValue = Math.min(...temperatures, ...humidities, ...soilValues);
-  const maxValue = Math.max(...temperatures, ...humidities, ...soilValues);
+  const values = history.map((item) => item[valueKey] ?? 0);
+  const timestamps = history.map((item) => item.timestamp ?? Date.now());
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
   const range = maxValue - minValue || 1;
 
   const padding = 30;
   const chartWidth = width - padding * 2;
   const chartHeight = height - padding * 2;
-  const stepX = history.length > 1 ? chartWidth / (history.length - 1) : 0;
+  const stepX = values.length > 1 ? chartWidth / (values.length - 1) : 0;
 
   function getX(index) {
     return padding + stepX * index;
@@ -63,46 +61,47 @@ function drawHistoryChart(history) {
     ctx.stroke();
   }
 
-  function drawLine(values, color) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  values.forEach((value, index) => {
+    const x = getX(index);
+    const y = getY(value);
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.stroke();
+
+  values.forEach((value, index) => {
+    const x = getX(index);
+    const y = getY(value);
     ctx.beginPath();
-    values.forEach((value, index) => {
-      const x = getX(index);
-      const y = getY(value);
-      if (index === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    });
-    ctx.stroke();
-
-    values.forEach((value, index) => {
-      const x = getX(index);
-      const y = getY(value);
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-    });
-  }
-
-  drawLine(temperatures, "#38bdf8");
-  drawLine(humidities, "#facc15");
-  drawLine(soilValues, "#22c55e");
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  });
 
   ctx.fillStyle = "#cbd5e1";
   ctx.font = "12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(formatTime(history[0].timestamp), padding, height - 10);
+  ctx.fillText(formatTime(timestamps[0]), padding, height - 10);
   ctx.textAlign = "right";
-  ctx.fillText(formatTime(history[history.length - 1].timestamp), width - padding, height - 10);
+  ctx.fillText(formatTime(timestamps[timestamps.length - 1]), width - padding, height - 10);
 
   ctx.textAlign = "left";
   ctx.fillText(`${minValue.toFixed(1)}`, padding, padding + 12);
   ctx.textAlign = "right";
   ctx.fillText(`${maxValue.toFixed(1)}`, width - padding, padding + 12);
+}
+
+function drawAllCharts(history) {
+  const normalizedHistory = normalizeHistory(history);
+  drawLineChart(tempChart, normalizedHistory, "temperature", "#38bdf8");
+  drawLineChart(humidityChart, normalizedHistory, "humidity", "#facc15");
+  drawLineChart(soilChart, normalizedHistory, "soilValue", "#22c55e");
 }
 
 async function fetchLatestData() {
@@ -130,7 +129,7 @@ async function fetchLatestData() {
       humidity: 0,
       soilValue: 0,
     }];
-    drawHistoryChart(currentHistory);
+    drawAllCharts(currentHistory);
 
     statusEl.textContent = "Live data loaded.";
   } catch (error) {
@@ -140,7 +139,7 @@ async function fetchLatestData() {
 }
 
 window.addEventListener("resize", () => {
-  drawHistoryChart(currentHistory);
+  drawAllCharts(currentHistory);
 });
 
 fetchLatestData();

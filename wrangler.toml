@@ -1,6 +1,5 @@
 name = "simple-iot-cloud"
 main = "workers/worker.js"
-type = "javascript"
 compatibility_date = "2026-01-01"
 compatibility_flags = ["nodejs_compat"]
 account_id = "ee86c1206b9f46ad3fe92ed714954932"

@@ -24,13 +24,16 @@
         <p id="soilValue">--</p>
       </div>
       <div class="card chart-card">
-        <h2>Last 60s sensor graph</h2>
-        <canvas id="historyChart"></canvas>
-        <div class="chart-legend">
-          <span><span class="legend-dot temp"></span>Temperature</span>
-          <span><span class="legend-dot humidity"></span>Humidity</span>
-          <span><span class="legend-dot soil"></span>Soil Value</span>
-        </div>
+        <h2>Temperature history</h2>
+        <canvas id="historyChartTemp" class="history-chart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h2>Humidity history</h2>
+        <canvas id="historyChartHum" class="history-chart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h2>Soil value history</h2>
+        <canvas id="historyChartSoil" class="history-chart"></canvas>
       </div>
     </div>
     <div class="footer">

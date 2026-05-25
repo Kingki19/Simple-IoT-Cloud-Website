@@ -1,6 +1,6 @@
 import html from '../website/index.html';
 import css from '../website/style.css';
-import appJs from '../website/app.js?raw=true';
+import appJs from '../website/app.js?raw';
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);

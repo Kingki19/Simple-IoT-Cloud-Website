@@ -1,4 +1,4 @@
-name = "simple-iot-cloud"
+name = "simple-iot-cloud-website"
 main = "workers/worker.js"
 compatibility_date = "2026-01-01"
 compatibility_flags = ["nodejs_compat"]

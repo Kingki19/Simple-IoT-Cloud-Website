@@ -1,6 +1,6 @@
 import html from '../website/index.html';
 import css from '../website/style.css';
-
+import readFileSync from 'fs';
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);

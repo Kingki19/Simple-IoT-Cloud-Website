@@ -243,9 +243,9 @@ function drawLineChart(canvas, history, valueKey, color) {
   ctx.fillText(formatTime(timestamps[timestamps.length - 1]), width - padding, height - 10);
 
   ctx.textAlign = "left";
-  ctx.fillText(\`${minValue.toFixed(1)}\`, padding, padding + 12);
+  ctx.fillText(minValue.toFixed(1), padding, padding + 12);
   ctx.textAlign = "right";
-  ctx.fillText(\`${maxValue.toFixed(1)}\`, width - padding, padding + 12);
+  ctx.fillText(maxValue.toFixed(1), width - padding, padding + 12);
 }
 
 function drawAllCharts(history) {
@@ -260,7 +260,7 @@ async function fetchLatestData() {
   try {
     const response = await fetch(apiUrl, { cache: "no-store" });
     if (!response.ok) {
-      throw new Error(\`${response.status} ${response.statusText}\`);
+      throw new Error(response.status + " " + response.statusText);
     }
 
     const data = await response.json();
@@ -268,8 +268,8 @@ async function fetchLatestData() {
     const humidity = data.humidity != null ? Number(data.humidity) : 0;
     const soilValue = data.soilValue != null ? Number(data.soilValue) : 0;
 
-    temperatureEl.textContent = \`${temperature.toFixed(1)} °C\`;
-    humidityEl.textContent = \`${humidity.toFixed(1)} %\`;
+    temperatureEl.textContent = temperature.toFixed(1) + " °C";
+    humidityEl.textContent = humidity.toFixed(1) + " %";
     soilValueEl.textContent = soilValue;
     updatedAtEl.textContent = data.timestamp ?? new Date().toLocaleString();
 

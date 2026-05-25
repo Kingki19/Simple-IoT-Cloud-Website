@@ -24,12 +24,16 @@ const html = `<!DOCTYPE html>
         <p id="soilValue">--</p>
       </div>
       <div class="card chart-card">
-        <h2>Last 60s sensor graph</h2>
-        <canvas id="historyChart"></canvas>
-        <div class="chart-legend">
-          <span><span class="legend-dot temp"></span>Temperature</span>
-          <span><span class="legend-dot humidity"></span>Humidity</span>
-        </div>
+        <h2>Temperature history</h2>
+        <canvas id="historyChartTemp" class="history-chart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h2>Humidity history</h2>
+        <canvas id="historyChartHum" class="history-chart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h2>Soil value history</h2>
+        <canvas id="historyChartSoil" class="history-chart"></canvas>
       </div>
     </div>
     <div class="footer">
@@ -99,7 +103,7 @@ h1 {
   padding-bottom: 14px;
 }
 
-#historyChart {
+.history-chart {
   width: 100%;
   height: 260px;
   display: block;
@@ -132,6 +136,10 @@ h1 {
   background: #facc15;
 }
 
+.legend-dot.soil {
+  background: #22c55e;
+}
+
 .footer {
   margin-top: 24px;
   color: #94a3b8;
@@ -147,7 +155,9 @@ const temperatureEl = document.getElementById("temperature");
 const humidityEl = document.getElementById("humidity");
 const soilValueEl = document.getElementById("soilValue");
 const updatedAtEl = document.getElementById("updatedAt");
-const historyChart = document.getElementById("historyChart");
+const tempChart = document.getElementById("historyChartTemp");
+const humidityChart = document.getElementById("historyChartHum");
+const soilChart = document.getElementById("historyChartSoil");
 
 let currentHistory = [];
 
@@ -156,34 +166,33 @@ function formatTime(timestamp) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-function drawHistoryChart(history) {
-  const ctx = historyChart.getContext("2d");
-  const width = historyChart.clientWidth;
-  const height = historyChart.clientHeight;
+function normalizeHistory(history) {
+  return history.length
+    ? history
+    : [{ timestamp: Date.now(), temperature: 0, humidity: 0, soilValue: 0 }];
+}
+
+function drawLineChart(canvas, history, valueKey, color) {
+  const ctx = canvas.getContext("2d");
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
   const dpr = window.devicePixelRatio || 1;
 
-  historyChart.width = width * dpr;
-  historyChart.height = height * dpr;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
 
-  if (!history.length) {
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "16px Inter, system-ui, sans-serif";
-    ctx.fillText("Waiting for sensor history...", 16, 34);
-    return;
-  }
-
-  const temperatures = history.map((item) => item.temperature);
-  const humidities = history.map((item) => item.humidity);
-  const minValue = Math.min(...temperatures, ...humidities);
-  const maxValue = Math.max(...temperatures, ...humidities);
+  const values = history.map((item) => item[valueKey] ?? 0);
+  const timestamps = history.map((item) => item.timestamp ?? Date.now());
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
   const range = maxValue - minValue || 1;
 
   const padding = 30;
   const chartWidth = width - padding * 2;
   const chartHeight = height - padding * 2;
-  const stepX = history.length > 1 ? chartWidth / (history.length - 1) : 0;
+  const stepX = values.length > 1 ? chartWidth / (values.length - 1) : 0;
 
   function getX(index) {
     return padding + stepX * index;
@@ -203,45 +212,47 @@ function drawHistoryChart(history) {
     ctx.stroke();
   }
 
-  function drawLine(values, color) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  values.forEach((value, index) => {
+    const x = getX(index);
+    const y = getY(value);
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.stroke();
+
+  values.forEach((value, index) => {
+    const x = getX(index);
+    const y = getY(value);
     ctx.beginPath();
-    values.forEach((value, index) => {
-      const x = getX(index);
-      const y = getY(value);
-      if (index === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    });
-    ctx.stroke();
-
-    values.forEach((value, index) => {
-      const x = getX(index);
-      const y = getY(value);
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-    });
-  }
-
-  drawLine(temperatures, "#38bdf8");
-  drawLine(humidities, "#facc15");
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  });
 
   ctx.fillStyle = "#cbd5e1";
   ctx.font = "12px Inter, system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(formatTime(history[0].timestamp), padding, height - 10);
+  ctx.fillText(formatTime(timestamps[0]), padding, height - 10);
   ctx.textAlign = "right";
-  ctx.fillText(formatTime(history[history.length - 1].timestamp), width - padding, height - 10);
+  ctx.fillText(formatTime(timestamps[timestamps.length - 1]), width - padding, height - 10);
 
   ctx.textAlign = "left";
-  ctx.fillText(minValue.toFixed(1), padding, padding + 12);
+  ctx.fillText(\`${minValue.toFixed(1)}\`, padding, padding + 12);
   ctx.textAlign = "right";
-  ctx.fillText(maxValue.toFixed(1), width - padding, padding + 12);
+  ctx.fillText(\`${maxValue.toFixed(1)}\`, width - padding, padding + 12);
+}
+
+function drawAllCharts(history) {
+  const normalizedHistory = normalizeHistory(history);
+  drawLineChart(tempChart, normalizedHistory, "temperature", "#38bdf8");
+  drawLineChart(humidityChart, normalizedHistory, "humidity", "#facc15");
+  drawLineChart(soilChart, normalizedHistory, "soilValue", "#22c55e");
 }
 
 async function fetchLatestData() {
@@ -249,17 +260,27 @@ async function fetchLatestData() {
   try {
     const response = await fetch(apiUrl, { cache: "no-store" });
     if (!response.ok) {
-      throw new Error(response.status + " " + response.statusText);
+      throw new Error(\`${response.status} ${response.statusText}\`);
     }
 
     const data = await response.json();
-    temperatureEl.textContent = (data.temperature !== undefined ? data.temperature.toFixed(1) : "--") + " °C";
-    humidityEl.textContent = (data.humidity !== undefined ? data.humidity.toFixed(1) : "--") + " %";
-    soilValueEl.textContent = data.soilValue ?? "--";
+    const temperature = data.temperature != null ? Number(data.temperature) : 0;
+    const humidity = data.humidity != null ? Number(data.humidity) : 0;
+    const soilValue = data.soilValue != null ? Number(data.soilValue) : 0;
+
+    temperatureEl.textContent = \`${temperature.toFixed(1)} °C\`;
+    humidityEl.textContent = \`${humidity.toFixed(1)} %\`;
+    soilValueEl.textContent = soilValue;
     updatedAtEl.textContent = data.timestamp ?? new Date().toLocaleString();
 
-    currentHistory = Array.isArray(data.history) ? data.history : [];
-    drawHistoryChart(currentHistory);
+    const history = Array.isArray(data.history) ? data.history : [];
+    currentHistory = history.length ? history : [{
+      timestamp: Date.now(),
+      temperature: 0,
+      humidity: 0,
+      soilValue: 0,
+    }];
+    drawAllCharts(currentHistory);
 
     statusEl.textContent = "Live data loaded.";
   } catch (error) {
@@ -269,7 +290,7 @@ async function fetchLatestData() {
 }
 
 window.addEventListener("resize", () => {
-  drawHistoryChart(currentHistory);
+  drawAllCharts(currentHistory);
 });
 
 fetchLatestData();

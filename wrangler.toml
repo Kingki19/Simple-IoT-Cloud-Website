@@ -1,0 +1,10 @@
+name = "simple_iot_farming_worker"
+main = "workers/worker.js"
+type = "javascript"
+compatibility_date = "2026-01-01"
+account_id = "ee86c1206b9f46ad3fe92ed714954932"
+workers_dev = true
+
+kv_namespaces = [
+  { binding = "SENSOR_DATA", id = "2d731617cf1f4ac196756a02f246a38b" }
+]

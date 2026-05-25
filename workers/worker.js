@@ -31,7 +31,7 @@ export default {
     }
 
     if (pathname === "/app.js") {
-      return new Response(js, {
+      return new Response(readFileSync('../website/app.js'), {
         status: 200,
         headers: { "Content-Type": "application/javascript; charset=utf-8" }
       });

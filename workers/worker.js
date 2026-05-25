@@ -1,12 +1,41 @@
+import html from '../website/index.html?raw';
+import css from '../website/style.css?raw';
+import js from '../website/app.js?raw';
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (request.method === "POST" && url.pathname === "/update") {
+    const pathname = url.pathname;
+
+    // API Routes
+    if (request.method === "POST" && pathname === "/update") {
       return handleUpdate(request, env);
     }
 
-    if (request.method === "GET" && url.pathname === "/latest") {
+    if (request.method === "GET" && pathname === "/latest") {
       return handleLatest(env);
+    }
+
+    // Static files
+    if (pathname === "/" || pathname === "/index.html") {
+      return new Response(html, {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8" }
+      });
+    }
+
+    if (pathname === "/style.css") {
+      return new Response(css, {
+        status: 200,
+        headers: { "Content-Type": "text/css; charset=utf-8" }
+      });
+    }
+
+    if (pathname === "/app.js") {
+      return new Response(js, {
+        status: 200,
+        headers: { "Content-Type": "application/javascript; charset=utf-8" }
+      });
     }
 
     return new Response("Not found", { status: 404 });

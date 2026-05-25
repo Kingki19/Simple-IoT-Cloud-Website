@@ -25,15 +25,17 @@ function drawHistoryChart(history) {
   ctx.clearRect(0, 0, width, height);
 
   if (!history.length) {
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "16px Inter, system-ui, sans-serif";
-    ctx.fillText("Waiting for sensor history...", 16, 34);
-    return;
+    history = [{
+      timestamp: Date.now(),
+      temperature: 0,
+      humidity: 0,
+      soilValue: 0,
+    }];
   }
 
-  const temperatures = history.map((item) => item.temperature);
-  const humidities = history.map((item) => item.humidity);
-  const soilValues = history.map((item) => item.soilValue);
+  const temperatures = history.map((item) => item.temperature ?? 0);
+  const humidities = history.map((item) => item.humidity ?? 0);
+  const soilValues = history.map((item) => item.soilValue ?? 0);
   const minValue = Math.min(...temperatures, ...humidities, ...soilValues);
   const maxValue = Math.max(...temperatures, ...humidities, ...soilValues);
   const range = maxValue - minValue || 1;
@@ -112,12 +114,22 @@ async function fetchLatestData() {
     }
 
     const data = await response.json();
-    temperatureEl.textContent = `${data.temperature?.toFixed(1) ?? "--"} °C`;
-    humidityEl.textContent = `${data.humidity?.toFixed(1) ?? "--"} %`;
-    soilValueEl.textContent = data.soilValue ?? "--";
+    const temperature = data.temperature != null ? Number(data.temperature) : 0;
+    const humidity = data.humidity != null ? Number(data.humidity) : 0;
+    const soilValue = data.soilValue != null ? Number(data.soilValue) : 0;
+
+    temperatureEl.textContent = `${temperature.toFixed(1)} °C`;
+    humidityEl.textContent = `${humidity.toFixed(1)} %`;
+    soilValueEl.textContent = soilValue;
     updatedAtEl.textContent = data.timestamp ?? new Date().toLocaleString();
 
-    currentHistory = Array.isArray(data.history) ? data.history : [];
+    const history = Array.isArray(data.history) ? data.history : [];
+    currentHistory = history.length ? history : [{
+      timestamp: Date.now(),
+      temperature: 0,
+      humidity: 0,
+      soilValue: 0,
+    }];
     drawHistoryChart(currentHistory);
 
     statusEl.textContent = "Live data loaded.";

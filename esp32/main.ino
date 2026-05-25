@@ -9,8 +9,8 @@
 // =========================
 const char* WIFI_SSID = "iotsimpleforfarming";
 const char* WIFI_PASSWORD = "khilya1803";
-const char* API_URL = "https://simple_iot_farming_worker.helmaliaputri622.workers.dev/update";
-const unsigned long POST_INTERVAL_MS = 15000;
+const char* API_URL = "https://simple-iot-cloud.helmaliaputri622.workers.dev/update";
+const unsigned long POST_INTERVAL_MS = 5000;
 
 // =========================
 // PIN CONFIG

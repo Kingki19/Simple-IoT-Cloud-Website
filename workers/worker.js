@@ -1,6 +1,6 @@
-import html from '../website/index.html?raw';
-import css from '../website/style.css?raw';
-import js from '../website/app.js?raw';
+import html from '../website/index.html';
+import css from '../website/style.css';
+import js from '../website/app.js';
 
 export default {
   async fetch(request, env) {

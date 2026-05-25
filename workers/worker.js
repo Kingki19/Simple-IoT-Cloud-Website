@@ -1,10 +1,6 @@
 import html from '../website/index.html';
 import css from '../website/style.css';
-import fs from 'fs/promises';
-
-// fetch app.js with fs
-
-const appJs = await fs.readFile('./website/app.js', 'utf-8');
+import appJs from '../website/app.js?raw=true';
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);

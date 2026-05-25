@@ -46,3 +46,37 @@ This project uses an ESP32 sensor sketch plus a static website hosted on Cloudfl
 - ESP32 sends the latest measurements as JSON to the Cloudflare Worker.
 - The Worker stores the latest reading and keeps the last 60 seconds of history in KV.
 - The Cloudflare Pages website fetches `/latest`, displays the data, and renders a one-minute graph.
+
+### Architecture diagram
+
+```mermaid
+flowchart TD
+  subgraph Device
+    ESP32[ESP32 sensor device]
+    DHT[DHT22 + soil sensor]
+  end
+
+  subgraph Cloudflare
+    Worker[Cloudflare Worker API]
+    KV[(SENSOR_DATA KV)]
+  end
+
+  subgraph Frontend
+    Site[Static website dashboard]
+  end
+
+  DHT -->|read sensor values| ESP32
+  ESP32 -->|POST /update JSON payload| Worker
+  Worker -->|store latest reading| KV
+  Worker -->|store history entries| KV
+  Site -->|GET /latest| Worker
+  Worker -->|return latest + history| Site
+  Site -->|render values + charts| Dashboard[Dashboard UI]
+
+  classDef device fill:#f8fafc,stroke:#0f172a,stroke-width:2px;
+  classDef cloud fill:#0ea5e9,stroke:#0f172a,stroke-width:2px;
+  classDef frontend fill:#34d399,stroke:#0f172a,stroke-width:2px;
+  class ESP32,DHT device;
+  class Worker,KV cloud;
+  class Site,Dashboard frontend;
+```

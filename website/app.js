@@ -1,4 +1,4 @@
-const apiUrl = "https://simple_iot_farming_worker.helmaliaputri622.workers.dev/latest";
+const apiUrl = "https://simple-iot-cloud.helmaliaputri622.workers.dev/latest";
 const statusEl = document.getElementById("status");
 const temperatureEl = document.getElementById("temperature");
 const humidityEl = document.getElementById("humidity");
